@@ -1,0 +1,102 @@
+const recintos = {
+    1: { bioma: 'savana', tamanhoTotal: 10, animaisExistentes: { macaco: 3 } },
+    2: { bioma: 'floresta', tamanhoTotal: 5, animaisExistentes: {} },
+    3: { bioma: 'savana e rio', tamanhoTotal: 7, animaisExistentes: { gazela: 1 } },
+    4: { bioma: 'rio', tamanhoTotal: 8, animaisExistentes: {} },
+    5: { bioma: 'savana', tamanhoTotal: 9, animaisExistentes: { leão: 1 } }
+};
+
+const animais = {
+    leão: { tamanho: 3, bioma: 'savana' },
+    leopardo: { tamanho: 2, bioma: 'savana' },
+    crocodilo: { tamanho: 3, bioma: 'rio' },
+    macaco: { tamanho: 1, bioma: 'savana ou floresta' },
+    gazela: { tamanho: 2, bioma: 'savana' },
+    hipopotamo: { tamanho: 4, bioma: 'savana ou rio' }
+};
+function verificarRecinto(recinto, especie, quantidade) {
+    const { bioma, tamanhoTotal, animaisExistentes } = recintos[recinto];
+    const animalInfo = animais[especie];
+
+    if (!animalInfo) {
+        return [null, "Animal inválido"];
+    }
+
+    const { tamanho, bioma: biomaAnimal } = animalInfo;
+
+    // Verifica se o bioma é adequado
+    if (!biomaAnimal.includes(bioma) && 
+        !(biomaAnimal === 'savana ou floresta' && bioma === 'floresta') &&
+        !(biomaAnimal === 'savana ou rio' && bioma === 'savana e rio')) {
+        return [null, "Bioma inadequado"];
+    }
+    
+    // Verifica carnívoros
+    const carnívoros = ['leão', 'leopardo', 'crocodilo'];
+    if (carnívoros.includes(especie)) {
+        for (const animal of Object.keys(animaisExistentes)) {
+            if (carnívoros.includes(animal) && animal !== especie) {
+                return [null, "Carnívoros devem estar sozinhos"];
+            }
+        }
+    }
+
+    // Calcula espaço ocupado
+    let tamanhoOcupado = Object.keys(animaisExistentes).reduce((total, animal) => {
+        return total + animais[animal].tamanho * animaisExistentes[animal];
+    }, 0);
+    tamanhoOcupado += quantidade * tamanho;
+    
+    if (bioma === 'savana e rio') {
+        tamanhoOcupado += 1; // Espaço extra para Hipopótamos
+    }
+
+    if (tamanhoOcupado > tamanhoTotal) {
+        return [null, "Espaço insuficiente"];
+    }
+
+    if (especie === 'macaco' && quantidade === 1 && Object.keys(animaisExistentes).length === 0) {
+        return [null, "Macaco precisa de companhia"];
+    }
+
+    if (bioma === 'savana e rio' && 'hipopotamo' in animaisExistentes) {
+        return [null, "Hipopotamos só podem compartilhar com outros em savana e rio"];
+    }
+
+    const espRestante = tamanhoTotal - tamanhoOcupado;
+    return [recinto, `Recinto ${recinto} (espaço livre: ${espRestante} total: ${tamanhoTotal})`];
+}
+function alocarAnimais(especie, quantidade) {
+    if (!(especie in animais)) {
+        return "Animal inválido";
+    }
+    
+    if (quantidade <= 0 || !Number.isInteger(quantidade)) {
+        return "Quantidade inválida";
+    }
+    
+    const recintosViaveis = [];
+    
+    for (const recinto in recintos) {
+        const [resultado, mensagem] = verificarRecinto(parseInt(recinto), especie, quantidade);
+        if (resultado) {
+            recintosViaveis.push(mensagem);
+        }
+    }
+    
+    if (recintosViaveis.length === 0) {
+        return "Não há recinto viável";
+    }
+    
+    recintosViaveis.sort((a, b) => {
+        const numA = parseInt(a.split(' ')[1]);
+        const numB = parseInt(b.split(' ')[1]);
+        return numA - numB;
+    });
+    
+    return recintosViaveis.join('\n');
+}
+console.log(alocarAnimais('macaco', 2)); // Teste para macacos
+console.log(alocarAnimais('crocodilo', 3)); // Teste para crocodilos
+console.log(alocarAnimais('leão', 1)); // Teste para leões
+console.log(alocarAnimais('hipopotamo', 2)); // Teste para hipopótamos
